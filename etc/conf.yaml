@@ -1,0 +1,13 @@
+
+
+arango:
+  db: vk_events
+  url: http://192.168.32.2:8529
+
+vk:
+  stream:
+    api_host: streaming.vk.com
+    rules:
+      - зп зарплата
+      
+
