@@ -1,8 +1,11 @@
 
 from pyArango.connection import *
-from vkstreaming import Streaming
+from vkstreaming import Streaming, getServerUrl
 import os
 import yaml
+import logging
+import sys
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 config = dict()
 
@@ -26,15 +29,47 @@ def init_db():
         db = conn.createDatabase(name=dbname)
 
     for coll in ["stream", "posts"]:
-        try:
-            db[coll]
-        except KeyError:
+        if not db.hasCollection(coll):
             db.createCollection(name=coll)
 
     return db
 
 
 db = init_db()
+stream_coll = db["stream"]
+
+response = getServerUrl(config['vk']['secure_key'])
+vkapi = Streaming(response["endpoint"], response["key"])
+
+logging.debug("Going to update rules.")
+
+rules = []
+streaming = {}
+with open("etc/streaming_rules.yaml", 'r') as yamlconf:
+    try:
+        streaming = yaml.load(yamlconf)
+    except yaml.YAMLError as exc:
+        print(exc)
+        exit()
+
+for tag, words in streaming['rules'].items():
+
+    rule = {'tag': tag, 'value': " ".join(words) }
+    rules.append(rule)
+
+logging.debug("Rulles to update: {}".format(rules))
+upd_rules = vkapi.update_rules(rules)
+logging.debug("Rules has been updated. {}".format(upd_rules))
 
 
-vkapi = Streaming(config["vk"]["stream"]["api_host"], )
+@vkapi.stream
+def stream2arango(event):
+    logging.debug("Got new event: {}".format(event))
+    ev = stream_coll.createDocument(event)
+    ev.save()
+    logging.debug("Event saved: {}".format(ev))
+
+logging.debug("Start listening.")
+vkapi.start()
+
+
