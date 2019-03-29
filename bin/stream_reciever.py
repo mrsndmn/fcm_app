@@ -5,11 +5,13 @@ import os
 import yaml
 import logging
 import sys
+import argparse
+
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 parser = argparse.ArgumentParser(description="My parser")
 parser.add_argument('--update-rules', dest='upd_rules', action='store_true')
-parser.set_defaults(feature=False)
+parser.set_defaults(upd_rules=False)
 
 parsed_args = parser.parse_args()
 logging.debug("Parsed args: {}".format(parsed_args))
@@ -27,7 +29,7 @@ with open("etc/conf.yaml", 'r') as yamlconf:
 print(config)
 
 conn = Connection(arangoURL=config["arango"]["url"], username=config["arango"]["username"], password=config["arango"]["password"], verbose=True)
-print(conn)
+# print(conn)
 def init_db():
     db = None
     dbname = config["arango"]["db"]
@@ -50,7 +52,7 @@ vkapi = Streaming(response["endpoint"], response["key"])
 
 logging.debug("Going to update rules.")
 
-if parsed_args["feature"]:
+if parsed_args.upd_rules:
     rules = []
     streaming = {}
     with open("etc/streaming.yaml", 'r') as yamlconf:
@@ -67,11 +69,11 @@ if parsed_args["feature"]:
 
     logging.debug("Rulles to update: {}".format(rules))
     upd_rules = vkapi.update_rules(rules)
-    logging.debug("Rules has been updated. {}".format(upd_rules))``
+    #logging.debug("Rules has been updated. {}".format(upd_rules))
 
 @vkapi.stream
 def stream2arango(event):
-    logging.debug("Got new event {}. Tags: {}".format(ev_cnt, event["tags"]))
+    logging.debug("Got new event. Tags: {}".format(event["tags"]))
     ev = stream_coll.createDocument(event)
     ev.save()
 
