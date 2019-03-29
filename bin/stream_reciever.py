@@ -52,9 +52,9 @@ with open("etc/streaming.yaml", 'r') as yamlconf:
         exit()
 
 for tag, words in streaming['rules'].items():
+    for i, w in enumerate(words):
+        rules.append({'tag': "{}{}".format(tag,i), 'value': w })
 
-    rule = {'tag': tag, 'value': " ".join(words) }
-    rules.append(rule)
 
 logging.debug("Rulles to update: {}".format(rules))
 upd_rules = vkapi.update_rules(rules)
