@@ -64,6 +64,8 @@ if parsed_args.upd_rules:
 
     for tag, words in streaming['rules'].items():
         for i, w in enumerate(words):
+            if not w: # we should save tags order
+                continue
             rules.append({'tag': "{}{}".format(tag,i), 'value': w })
 
 
