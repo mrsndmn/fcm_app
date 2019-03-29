@@ -11,3 +11,6 @@ Port forwarding
 ```
 ssh -f -N -L 8530:172.17.0.2:8529 d.tarasov@116.203.70.12
 ```
+
+## todo 
+db.posts.ensureIndex({ type: "hash", fields: [ "tags[*]" ] });
