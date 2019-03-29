@@ -7,6 +7,14 @@ import logging
 import sys
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
+parser = argparse.ArgumentParser(description="My parser")
+parser.add_argument('--update-rules', dest='upd_rules', action='store_true')
+parser.set_defaults(feature=False)
+
+parsed_args = parser.parse_args()
+logging.debug("Parsed args: {}".format(parsed_args))
+
+
 config = dict()
 
 with open("etc/conf.yaml", 'r') as yamlconf:
@@ -42,31 +50,30 @@ vkapi = Streaming(response["endpoint"], response["key"])
 
 logging.debug("Going to update rules.")
 
-rules = []
-streaming = {}
-with open("etc/streaming.yaml", 'r') as yamlconf:
-    try:
-        streaming = yaml.load(yamlconf)
-    except yaml.YAMLError as exc:
-        print(exc)
-        exit()
+if parsed_args["feature"]:
+    rules = []
+    streaming = {}
+    with open("etc/streaming.yaml", 'r') as yamlconf:
+        try:
+            streaming = yaml.load(yamlconf)
+        except yaml.YAMLError as exc:
+            print(exc)
+            exit()
 
-for tag, words in streaming['rules'].items():
-    for i, w in enumerate(words):
-        rules.append({'tag': "{}{}".format(tag,i), 'value': w })
+    for tag, words in streaming['rules'].items():
+        for i, w in enumerate(words):
+            rules.append({'tag': "{}{}".format(tag,i), 'value': w })
 
 
-logging.debug("Rulles to update: {}".format(rules))
-upd_rules = vkapi.update_rules(rules)
-logging.debug("Rules has been updated. {}".format(upd_rules))
-
+    logging.debug("Rulles to update: {}".format(rules))
+    upd_rules = vkapi.update_rules(rules)
+    logging.debug("Rules has been updated. {}".format(upd_rules))``
 
 @vkapi.stream
 def stream2arango(event):
-    logging.debug("Got new event: {}".format(event))
+    logging.debug("Got new event {}. Tags: {}".format(ev_cnt, event["tags"]))
     ev = stream_coll.createDocument(event)
     ev.save()
-    logging.debug("Event saved: {}".format(ev))
 
 logging.debug("Start listening.")
 vkapi.start()
