@@ -18,15 +18,14 @@ with open("etc/conf.yaml", 'r') as yamlconf:
 
 print(config)
 
-conn = Connection(arangoURL=config["arango"]["url"])
-
+conn = Connection(arangoURL=config["arango"]["url"], username=config["arango"]["username"], password=config["arango"]["password"], verbose=True)
+print(conn)
 def init_db():
     db = None
     dbname = config["arango"]["db"]
-    try:
-        db = conn[dbname]
-    except KeyError:
+    if not conn.hasDatabase(dbname):
         db = conn.createDatabase(name=dbname)
+    db = conn[dbname]
 
     for coll in ["stream", "posts"]:
         if not db.hasCollection(coll):
@@ -45,7 +44,7 @@ logging.debug("Going to update rules.")
 
 rules = []
 streaming = {}
-with open("etc/streaming_rules.yaml", 'r') as yamlconf:
+with open("etc/streaming.yaml", 'r') as yamlconf:
     try:
         streaming = yaml.load(yamlconf)
     except yaml.YAMLError as exc:
