@@ -62,11 +62,14 @@ if parsed_args.upd_rules:
             print(exc)
             exit()
 
+    glob_alt = " ".join(streaming['rules']['global_alters'])
     for tag, words in streaming['rules'].items():
+        if tag == 'global_alters':
+            continue
         for i, w in enumerate(words):
             if not w: # we should save tags order
                 continue
-            rules.append({'tag': "{}{}".format(tag,i), 'value': w })
+            rules.append({'tag': "{}{}".format(tag,i), 'value': w + " " + glob_alt })
 
 
     logging.debug("Rulles to update: {}".format(rules))
