@@ -50,6 +50,8 @@ ACCEPTED_EVENT_TYPES = [ 'new', 'update' ]
 MAX_CONNECT_TRIES = 20
 CONNECT_ERR_SLEEP = 300
 
+vkapi = None
+
 def connect2stream():
     logging.info("trying to connect to stream")
 
@@ -64,6 +66,7 @@ def connect2stream():
 
     return api
 
+vkapi = connect2stream()
 
 @vkapi.stream
 def stream2arango(stream_event):
@@ -83,8 +86,6 @@ def stream2arango(stream_event):
 
 db = init_db()
 stream_coll = db["stream"]
-
-vkapi = connect2stream()
 
 logging.debug("Going to update rules.")
 
