@@ -46,39 +46,6 @@ def init_db():
 
     return db
 
-
-db = init_db()
-stream_coll = db["stream"]
-
-vkapi = connect2stream()
-
-logging.debug("Going to update rules.")
-
-if parsed_args.upd_rules:
-    rules = []
-    streaming = {}
-    with open("etc/streaming.yaml", 'r') as yamlconf:
-        try:
-            streaming = yaml.load(yamlconf)
-        except yaml.YAMLError as exc:
-            print(exc)
-            exit()
-
-    glob_alt = " ".join(streaming['rules']['global_alters'])
-    for tag, words in streaming['rules'].items():
-        if tag == 'global_alters':
-            continue
-        for i, w in enumerate(words):
-            if not w: # we should save tags order
-                continue
-            rules.append({'tag': "{}{}".format(tag,i), 'value': w + " " + glob_alt })
-
-
-    logging.debug("Rulles to update: {}".format(rules))
-    upd_rules = vkapi.update_rules(rules)
-    #logging.debug("Rules has been updated. {}".format(upd_rules))
-
-
 ACCEPTED_EVENT_TYPES = [ 'new', 'update' ]
 MAX_CONNECT_TRIES = 20
 CONNECT_ERR_SLEEP = 300
@@ -113,6 +80,38 @@ def stream2arango(stream_event):
 
     ev = stream_coll.createDocument(stream_event)
     ev.save()
+
+db = init_db()
+stream_coll = db["stream"]
+
+vkapi = connect2stream()
+
+logging.debug("Going to update rules.")
+
+if parsed_args.upd_rules:
+    rules = []
+    streaming = {}
+    with open("etc/streaming.yaml", 'r') as yamlconf:
+        try:
+            streaming = yaml.load(yamlconf)
+        except yaml.YAMLError as exc:
+            print(exc)
+            exit()
+
+    glob_alt = " ".join(streaming['rules']['global_alters'])
+    for tag, words in streaming['rules'].items():
+        if tag == 'global_alters':
+            continue
+        for i, w in enumerate(words):
+            if not w: # we should save tags order
+                continue
+            rules.append({'tag': "{}{}".format(tag,i), 'value': w + " " + glob_alt })
+
+
+    logging.debug("Rulles to update: {}".format(rules))
+    upd_rules = vkapi.update_rules(rules)
+    #logging.debug("Rules has been updated. {}".format(upd_rules))
+
 
 logging.debug("Start listening.")
 vkapi.start()
