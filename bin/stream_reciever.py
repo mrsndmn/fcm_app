@@ -106,11 +106,11 @@ if parsed_args.upd_rules:
         for i, w in enumerate(words):
             if not w: # we should save tags order
                 continue
-            rules.append({'tag': "{}{}".format(tag,i), 'value': w + " " + glob_alt })
+            rule = {'tag': "{}{}".format(tag,i), 'value': w + " " + glob_alt }
+            logging.debug("Rulle to update: {}".format(rule))
+            vkapi.add_rules(rule)
 
 
-    logging.debug("Rulles to update: {}".format(rules))
-    upd_rules = vkapi.update_rules(rules)
     #logging.debug("Rules has been updated. {}".format(upd_rules))
 
 
