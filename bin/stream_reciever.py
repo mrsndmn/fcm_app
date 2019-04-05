@@ -1,10 +1,13 @@
 
 from pyArango.connection import *
 from vkstreaming import Streaming, getServerUrl
+
 import os
+import sys
+import time
+
 import yaml
 import logging
-import sys
 import argparse
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
@@ -47,8 +50,7 @@ def init_db():
 db = init_db()
 stream_coll = db["stream"]
 
-response = getServerUrl(config['vk']['secure_key'])
-vkapi = Streaming(response["endpoint"], response["key"])
+vkapi = connect2stream()
 
 logging.debug("Going to update rules.")
 
@@ -76,10 +78,40 @@ if parsed_args.upd_rules:
     upd_rules = vkapi.update_rules(rules)
     #logging.debug("Rules has been updated. {}".format(upd_rules))
 
+
+ACCEPTED_EVENT_TYPES = [ 'new', 'update' ]
+MAX_CONNECT_TRIES = 20
+CONNECT_ERR_SLEEP = 300
+
+def connect2stream():
+    logging.info("trying to connect to stream")
+
+    for i in range(MAX_CONNECT_TRIES):
+        response = getServerUrl(config['vk']['secure_key'])
+        try:
+            api = Streaming(response["endpoint"], response["key"])
+        except vkapi.VkError as e:
+            logging.error("Error [{}] while connectiong to stream: {}".format(e.error_code, e.message))
+            time.sleep(CONNECT_ERR_SLEEP)
+        break
+
+    return api
+
+
 @vkapi.stream
-def stream2arango(event):
-    logging.debug("Got new event. Tags: {}".format(event["tags"]))
-    ev = stream_coll.createDocument(event)
+def stream2arango(stream_event):
+    if stream_event['code'] == 300:
+        logging.info("Streaming api is going to shutdown")
+        vkapi.stop()
+        connect2stream()
+        return
+
+    logging.debug("Got new event. Tags: {}".format(stream_event["tags"]))
+    if stream_event["action"] not in ACCEPTED_EVENT_TYPES:
+        return
+
+
+    ev = stream_coll.createDocument(stream_event)
     ev.save()
 
 logging.debug("Start listening.")
