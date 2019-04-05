@@ -108,7 +108,7 @@ if parsed_args.upd_rules:
                 continue
             rule = {'tag': "{}{}".format(tag,i), 'value': w + " " + glob_alt }
             logging.debug("Rulle to update: {}".format(rule))
-            vkapi.add_rules(rule)
+            vkapi.add_rules(rule['tag'], rule['value'])
 
 
     #logging.debug("Rules has been updated. {}".format(upd_rules))
