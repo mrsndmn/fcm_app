@@ -1,6 +1,6 @@
 
 from pyArango.connection import *
-from vkstreaming import Streaming, getServerUrl
+from vkstreaming import Streaming, getServerUrl, VkError
 
 import os
 import sys
@@ -59,7 +59,7 @@ def connect2stream():
         response = getServerUrl(config['vk']['secure_key'])
         try:
             api = Streaming(response["endpoint"], response["key"])
-        except vkapi.VkError as e:
+        except VkError as e:
             logging.error("Error [{}] while connectiong to stream: {}".format(e.error_code, e.message))
             time.sleep(CONNECT_ERR_SLEEP)
         break
@@ -70,11 +70,6 @@ vkapi = connect2stream()
 
 @vkapi.stream
 def stream2arango(stream_event):
-    if stream_event['code'] == 300:
-        logging.info("Streaming api is going to shutdown")
-        vkapi.stop()
-        connect2stream()
-        return
 
     logging.debug("Got new event. Tags: {}".format(stream_event["tags"]))
     if stream_event["action"] not in ACCEPTED_EVENT_TYPES:
@@ -109,12 +104,12 @@ if parsed_args.upd_rules:
             rule = {'tag': "{}{}".format(tag,i), 'value': w + " " + glob_alt }
             logging.debug("Rulle to update: {}".format(rule))
             try:
-                vkapi.add_rules(rule)
-            except vkapi.Error as e::
+                vkapi.add_rules(rule['tag'], rule['value'])
+            except VkError as e:
+                print(e.error_code) #Код ошибки
+                print(e.message) #Сообщение
                 if e.error_code == 2001: # tag already exists
                     continue
-
-
 
 
     #logging.debug("Rules has been updated. {}".format(upd_rules))
