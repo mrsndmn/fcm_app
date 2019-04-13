@@ -108,7 +108,13 @@ if parsed_args.upd_rules:
                 continue
             rule = {'tag': "{}{}".format(tag,i), 'value': w + " " + glob_alt }
             logging.debug("Rulle to update: {}".format(rule))
-            vkapi.add_rules(rule)
+            try:
+                vkapi.add_rules(rule)
+            except vkapi.Error as e::
+                if e.error_code == 2001: # tag already exists
+                    continue
+
+
 
 
     #logging.debug("Rules has been updated. {}".format(upd_rules))
