@@ -1,7 +1,7 @@
 from celery import Celery
 from celery.contrib.batches import Batches
 
-# ~/pyvenvs/bin/celery -A tasks worker --loglevel=info
+# ~/pyvenvs/bin/celery -A tasks worker --loglevel=info --autoscale=5,2
 
 app = Celery('tasks', broker='amqp://172.17.0.3:5672/')
 
