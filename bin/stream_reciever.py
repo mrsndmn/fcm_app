@@ -108,6 +108,8 @@ if parsed_args.upd_rules:
             except VkError as e:
                 print(e.error_code) #Код ошибки
                 print(e.message) #Сообщение
+                if e.error_code == 2001: # tag already exists
+                    continue
 
 
     #logging.debug("Rules has been updated. {}".format(upd_rules))
