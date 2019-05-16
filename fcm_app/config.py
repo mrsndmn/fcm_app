@@ -1,5 +1,6 @@
 import yaml
 import sys
+import redis
 from pyArango.connection import *
 import logging
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
@@ -14,6 +15,11 @@ with open("etc/conf.yaml", 'r') as yamlconf:
         exit()
 
 print(config)
+
+
+# REDIS
+redis_conn = redis.Redis(db=config["queue"]["BATCHDB"], decode_responses=True, host=config['queue']['redis_host'])
+
 
 # ARANGO
 arango_conn = Connection(arangoURL=config["arango"]["url"], username=config["arango"]["username"], password=config["arango"]["password"], verbose=True)
