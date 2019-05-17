@@ -18,19 +18,20 @@ tiger = TaskTiger(connection=redis_conn, config={
 
 @tiger.task(queue='batch', batch=True)
 def save_event(events):
-    print("got batch of events:", events)
+    print("got batch of events:", len(events))
 
     try:
         save2arango(events)
+        print("arango is ok\nsaving2pg:")
         save2pg(events)
     except Exception as e:
-        print("Got exception while saving events: ", e)
+        print("Got exception while saving events: {}".format(e))
 
 
 def save2arango(events):
 
     batch_db = arango_conn.begin_batch_execution(return_result=False)
-    for e in range(events):
+    for e in events:
         batch_db.collection("stream").insert(e)
 
     # The commit must be called explicitly.
@@ -41,7 +42,9 @@ def save2pg(events):
     cur = pg_conn.cursor()
     ev_tpls = []
     for e in events:
+        print(e)
         author = e['author']
+        print(author)
         shared_post_author_id = author["shared_post_author_id"] if shared_post_author_id in author else None
 
         ev_tpls.append((
@@ -54,6 +57,7 @@ def save2pg(events):
         author_id, shared_post_author_id, action_time, creation_time, platform, event_type, action,
         attachments, geo, event_id, tags, event_text) VALUES
         """.format(config["pg"]["table"])
+    print("executing pg: " +  inert_stmnt_prefix + args_str)
     cur.execute(inert_stmnt_prefix + args_str)
     cur.close()
     pg_conn.commit()
