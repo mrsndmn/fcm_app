@@ -32,7 +32,7 @@ def save2arango(events):
 
     batch_db = arango_conn.begin_batch_execution(return_result=False)
     for e in events:
-        batch_db.collection("stream").insert(e)
+        batch_db.collection("stream").insert(*e['args'])
 
     # The commit must be called explicitly.
     batch_db.commit()
@@ -41,7 +41,7 @@ def save2arango(events):
 def save2pg(events):
     cur = pg_conn.cursor()
     ev_tpls = []
-    for e in events:
+    for e in [ *e['args'] for e in events]:
         print(e)
         author = e['author']
         print(author)
