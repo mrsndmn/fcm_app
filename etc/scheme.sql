@@ -66,3 +66,5 @@ create table stream_events (
     tags            text[],
     event_text      text
 );
+
+

@@ -47,7 +47,9 @@ def save2pg(events):
         author = e['author']
         print(author)
         shared_post_author_id = author["shared_post_author_id"] if "shared_post_author_id" in author else None
-
+        for k in [ "action_time","creation_time","event_type","action","attachments","geo","event_id","tags","event_text" ]:
+            if k not in e:
+                e[k] = None
         ev_tpls.append((
             author["id"], shared_post_author_id, e["action_time"], e["creation_time"], author["platform"], e["event_type"], e["action"],
             json.dumps(e["attachments"]), e["geo"], e["event_id"], e["tags"], e["event_text"]
