@@ -54,7 +54,7 @@ def save2pg(events):
                 e[k] = None
         ev_tpls.append((
             author["id"], shared_post_author_id, e["action_time"], e["creation_time"], author["platform"], e["event_type"], e["action"],
-            json.dumps(e["attachments"]), e["geo"], e["event_id"], e["tags"], e["event_text"]
+            json.dumps(e["attachments"]), json.dumps(e["geo"]), json.dumps(e["event_id"]), e["tags"], e["event_text"]
         ))
 
     args_str = ','.join(cur.mogrify("(%d,%d,%d,to_timestamp(%d),to_timestamp(%d),%d,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,%s,%s)", e) for e in ev_tpls)
