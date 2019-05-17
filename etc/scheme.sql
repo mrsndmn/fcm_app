@@ -52,7 +52,7 @@ create table event_authors (
 
 create table stream_events (
     id              serial primary key,
-    author_id       bigint not null references event_authors(user_id),
+    author_id       bigint not null, -- references event_authors(user_id)
     shared_post_author_id bigint,
     action_time     timestamp,
     creation_time   timestamp,

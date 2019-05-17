@@ -1,8 +1,8 @@
 
 from vkstreaming import Streaming, getServerUrl, VkError
 from fcm_app.config import config, logging
+import fcm_app.tasks
 import time
-from fcm_app.tasks import save_events
 
 ACCEPTED_EVENT_TYPES = [ 'new', 'update' ]
 MAX_CONNECT_TRIES = 20
@@ -34,10 +34,10 @@ def connect2stream():
 vkapi = connect2stream()
 
 @vkapi.stream
-def stream2arango(stream_event):
+def stream_reciever(stream_event):
 
     logging.debug("Got new event. Tags: {}".format(stream_event["tags"]))
     if stream_event["action"] not in ACCEPTED_EVENT_TYPES:
         return
 
-    save_events.delay(stream_event)
+    fcm_app.tasks.save_event.delay(stream_event)

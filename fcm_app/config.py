@@ -1,7 +1,9 @@
 import yaml
 import sys
 import redis
-from pyArango.connection import *
+from arango import ArangoClient, AQLQueryExecuteError
+import psycopg2
+
 import logging
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
@@ -20,30 +22,16 @@ print(config)
 # REDIS
 redis_conn = redis.Redis(db=config["queue"]["BATCHDB"], decode_responses=True, host=config['queue']['redis_host'])
 
-
 # ARANGO
-arango_conn = Connection(arangoURL=config["arango"]["url"], username=config["arango"]["username"], password=config["arango"]["password"], verbose=True)
-def init_arangodb():
-    db = None
-    dbname = config["arango"]["db"]
-    if not arango_conn.hasDatabase(dbname):
-        db = arango_conn.createDatabase(name=dbname)
-    db = arango_conn[dbname]
+arango_client = ArangoClient(protocol='http', host=config["arango"]["host"], port=config["arango"]["port"])
+arango_conn = arango_client.db(config["arango"]["db"], username=config["arango"]["username"], password=config["arango"]["password"])
 
-    for coll in ["stream", "posts"]:
-        if not db.hasCollection(coll):
-            db.createCollection(name=coll)
-
-    return db
-
-arangodb = init_arangodb()
 
 # POSTGRES
-
+pg_conn = psycopg2.connect(config["pg"]["connstr"])
 
 
 streaming_cong = dict()
-
 with open("etc/streaming.yaml", 'r') as yamlconf:
     try:
         streaming = yaml.load(yamlconf)
