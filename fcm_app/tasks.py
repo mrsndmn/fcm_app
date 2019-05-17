@@ -57,7 +57,7 @@ def save2pg(events):
             json.dumps(e["attachments"]), json.dumps(e["geo"]), json.dumps(e["event_id"]), e["tags"], e["event_text"]
         ))
 
-    args_str = ','.join(cur.mogrify("(%d,%d,%d,to_timestamp(%d),to_timestamp(%d),%d,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,%s,%s)", e) for e in ev_tpls)
+    args_str = ','.join(cur.mogrify("(%d,%d,to_timestamp(%d),to_timestamp(%d),%d,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,%s,%s)", e) for e in ev_tpls)
     inert_stmnt_prefix = """INSERT INTO {} (
         author_id, shared_post_author_id, action_time, creation_time, platform, event_type, action,
         attachments, geo, event_id, tags, event_text) VALUES
