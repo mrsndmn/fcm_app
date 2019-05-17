@@ -20,12 +20,13 @@ tiger = TaskTiger(connection=redis_conn, config={
 def save_event(events):
     print("got batch of events:", len(events))
 
-    try:
-        save2arango(events)
-        print("arango is ok\nsaving2pg:")
-        save2pg(events)
-    except Exception as e:
-        print("Got exception while saving events: {}".format(e))
+#    try:
+    save2arango(events)
+    print("arango is ok\nsaving2pg:")
+    save2pg(events)
+#    except Exception as e:
+#        print("Got exception while saving events: {}".format(e))
+        
 
 
 def save2arango(events):
@@ -41,11 +42,11 @@ def save2arango(events):
 def save2pg(events):
     cur = pg_conn.cursor()
     ev_tpls = []
-    for e in [ *e['args'] for e in events]:
+    for e in [ ev['args'][0] for ev in events]:
         print(e)
         author = e['author']
         print(author)
-        shared_post_author_id = author["shared_post_author_id"] if shared_post_author_id in author else None
+        shared_post_author_id = author["shared_post_author_id"] if "shared_post_author_id" in author else None
 
         ev_tpls.append((
             author["id"], shared_post_author_id, e["action_time"], e["creation_time"], author["platform"], e["event_type"], e["action"],
