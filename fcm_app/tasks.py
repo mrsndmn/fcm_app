@@ -45,6 +45,8 @@ def save2pg(events):
     for e in [ ev['args'][0] for ev in events]:
         print(e)
         author = e['author']
+        if 'platform' not in author:
+            author['platform'] = None
         print(author)
         shared_post_author_id = author["shared_post_author_id"] if "shared_post_author_id" in author else None
         for k in [ "action_time","creation_time","event_type","action","attachments","geo","event_id","tags","event_text" ]:
