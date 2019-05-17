@@ -20,12 +20,12 @@ tiger = TaskTiger(connection=redis_conn, config={
 def save_event(events):
     print("got batch of events:", len(events))
 
-#    try:
-    save2arango(events)
-    print("arango is ok\nsaving2pg:")
-    save2pg(events)
-#    except Exception as e:
-#        print("Got exception while saving events: {}".format(e))
+    try:
+        save2arango(events)
+        #print("arango is ok\nsaving2pg:")
+        save2pg(events)
+    except Exception as e:
+        print("Got exception while saving events: {}".format(e))
         
 
 
@@ -43,27 +43,27 @@ def save2pg(events):
     cur = pg_conn.cursor()
     ev_tpls = []
     for e in [ ev['args'][0] for ev in events]:
-        print(e)
+        #print(e['text'])
         author = e['author']
         if 'platform' not in author:
             author['platform'] = None
-        print(author)
+        #print(author)
         shared_post_author_id = author["shared_post_author_id"] if "shared_post_author_id" in author else None
-        for k in [ "action_time","creation_time","event_type","action","attachments","geo","event_id","tags","event_text" ]:
+        for k in [ "action_time","creation_time","event_type","action","attachments","geo","event_id","tags","text" ]:
             if k not in e:
                 e[k] = None
         ev_tpls.append((
             author["id"], shared_post_author_id, e["action_time"], e["creation_time"], author["platform"], e["event_type"], e["action"],
-            json.dumps(e["attachments"]), json.dumps(e["geo"]), json.dumps(e["event_id"]), e["tags"], e["event_text"]
+            json.dumps(e["attachments"]), json.dumps(e["geo"]), json.dumps(e["event_id"]), e["tags"], e["text"]
         ))
-
-    args_str = ','.join(cur.mogrify("(%d,%d,to_timestamp(%d),to_timestamp(%d),%d,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,%s,%s)", e) for e in ev_tpls)
+    # print(ev_tpls)
+    args_str = b",".join(cur.mogrify("(%s,%s,to_timestamp(%s),to_timestamp(%s),%s,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,%s,%s)", e) for e in ev_tpls)
     inert_stmnt_prefix = """INSERT INTO {} (
         author_id, shared_post_author_id, action_time, creation_time, platform, event_type, action,
         attachments, geo, event_id, tags, event_text) VALUES
         """.format(config["pg"]["table"])
-    print("executing pg: " +  inert_stmnt_prefix + args_str)
-    cur.execute(inert_stmnt_prefix + args_str)
+    # print("executing pg: " +  inert_stmnt_prefix + "{}".format(args_str))
+    cur.execute(bytes(inert_stmnt_prefix, 'utf-8') + args_str)
     cur.close()
     pg_conn.commit()
 
