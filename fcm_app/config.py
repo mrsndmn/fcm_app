@@ -31,10 +31,10 @@ arango_conn = arango_client.db(config["arango"]["db"], username=config["arango"]
 pg_conn = psycopg2.connect(config["pg"]["connstr"])
 
 
-streaming_cong = dict()
+streaming_conf = dict()
 with open("etc/streaming.yaml", 'r') as yamlconf:
     try:
-        streaming = yaml.load(yamlconf)
+        streaming_conf = yaml.load(yamlconf)
     except yaml.YAMLError as exc:
         print(exc)
         exit()

@@ -65,3 +65,4 @@ select count(1) from stream_events where 'tourism0' = any(tags);
 
 
 select tag, count(1) as ut from (select unnest(tags) as tag from msk_stream_events) a group by tag order by ut desc;
+

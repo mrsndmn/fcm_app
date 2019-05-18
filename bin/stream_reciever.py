@@ -2,7 +2,7 @@
 import os
 import argparse
 import fcm_app.vkstream
-from fcm_app.config import config, streaming_cong, logging
+from fcm_app.config import config, streaming_conf, logging
 
 parser = argparse.ArgumentParser(description="My parser")
 parser.add_argument('--update-rules', dest='upd_rules', action='store_true')
@@ -15,8 +15,8 @@ logging.debug("Parsed args: {}".format(parsed_args))
 if parsed_args.upd_rules:
     logging.debug("Going to update rules.")
     rules = []
-    streaming = streaming_cong
-
+    streaming = streaming_conf
+    fcm_app.vkstream.vkapi.del_all_rules()
     glob_alt = " ".join(streaming['rules']['global_alters'])
     for tag, words in streaming['rules'].items():
         if tag == 'global_alters':
