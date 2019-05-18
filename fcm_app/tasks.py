@@ -17,13 +17,15 @@ tiger = TaskTiger(connection=redis_conn, config={
 # >>> fcm_app.tasks.tiger.delay(fcm_app.tasks.batch_task, args=(1,), kwargs={'n':1})
 
 @tiger.task(queue='batch', batch=True)
-def save_event(events):
+def save_event(events, nopg=False, noarango=False):
     print("got batch of events:", len(events))
 
     try:
-        save2arango(events)
+        if not noarango:
+            save2arango(events)
         #print("arango is ok\nsaving2pg:")
-        save2pg(events)
+        if not nopg:
+            save2pg(events)
     except Exception as e:
         print("Got exception while saving events: {}".format(e))
         
@@ -52,20 +54,28 @@ def save2pg(events):
         for k in [ "action_time","creation_time","event_type","action","attachments","geo","event_id","tags","text" ]:
             if k not in e:
                 e[k] = None
+            elif isinstance(e[k], str):
+                e[k] = e[k].replace('\x00', '')
         ev_tpls.append((
             author["id"], shared_post_author_id, e["action_time"], e["creation_time"], author["platform"], e["event_type"], e["action"],
-            json.dumps(e["attachments"]), json.dumps(e["geo"]), json.dumps(e["event_id"]), e["tags"], e["text"]
+            json.dumps(e["attachments"]).rstrip('\0'), json.dumps(e["geo"]).rstrip('\0'), json.dumps(e["event_id"]).rstrip('\0'), e["tags"], e["text"]
         ))
     # print(ev_tpls)
-    args_str = b",".join(cur.mogrify("(%s,%s,to_timestamp(%s),to_timestamp(%s),%s,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,%s,%s)", e) for e in ev_tpls)
-    inert_stmnt_prefix = """INSERT INTO {} (
-        author_id, shared_post_author_id, action_time, creation_time, platform, event_type, action,
-        attachments, geo, event_id, tags, event_text) VALUES
-        """.format(config["pg"]["table"])
-    # print("executing pg: " +  inert_stmnt_prefix + "{}".format(args_str))
-    cur.execute(bytes(inert_stmnt_prefix, 'utf-8') + args_str)
-    cur.close()
-    pg_conn.commit()
+    try:
+        args_str = b",".join(cur.mogrify("(%s,%s,to_timestamp(%s),to_timestamp(%s),%s,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,%s,%s)", e) for e in ev_tpls)
+        inert_stmnt_prefix = """INSERT INTO {} (
+            author_id, shared_post_author_id, action_time, creation_time, platform, event_type, action,
+            attachments, geo, event_id, tags, event_text) VALUES
+            """.format(config["pg"]["table"])
+        # print("executing pg: " +  inert_stmnt_prefix + "{}".format(args_str))
+        cur.execute(bytes(inert_stmnt_prefix, 'utf-8') + args_str)
+        cur.close()
+        print("ok saved to pg")
+        pg_conn.commit()
+    except Exception as e:
+        # print("pgerr: ", e, ev_tpls)
+        pg_conn.rollback()
+        raise e
 
 
 def save2bigquery(ev):
