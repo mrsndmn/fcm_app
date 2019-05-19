@@ -67,4 +67,27 @@ create table stream_events (
     event_text      text
 );
 
+alter table stream_events add column attachment_text text;
 
+update stream_events set attachment_text = att.attachment_text
+    from
+    stream_events se,
+    lateral (
+        select case
+            when jsonb_extract_path_text(a.value, 'type') = 'link'           then jsonb_extract_path_text(a.value, 'link', 'title') || ' ' || jsonb_extract_path(a.value, 'link', 'description')
+            when jsonb_extract_path_text(a.value, 'type') = 'photo'          then jsonb_extract_path_text(a.value, 'photo', 'text')
+            when jsonb_extract_path_text(a.value, 'type') = 'video'          then jsonb_extract_path_text(a.value, 'video', 'title') || ' ' || jsonb_extract_path(a.value, 'video', 'description')
+            when jsonb_extract_path_text(a.value, 'type') = 'audo'           then jsonb_extract_path_text(a.value, 'audio', 'title') || ' ' || jsonb_extract_path(a.value, 'audio', 'artist')
+            when jsonb_extract_path_text(a.value, 'type') = 'album'          then jsonb_extract_path_text(a.value, 'album', 'title') || ' ' || jsonb_extract_path(a.value, 'album', 'text')
+            when jsonb_extract_path_text(a.value, 'type') = 'doc'            then jsonb_extract_path_text(a.value, 'doc', 'title')
+            when jsonb_extract_path_text(a.value, 'type') = 'page'           then jsonb_extract_path_text(a.value, 'page', 'title')
+            when jsonb_extract_path_text(a.value, 'type') = 'poll'           then jsonb_extract_path_text(a.value, 'poll', 'question')
+            when jsonb_extract_path_text(a.value, 'type') = 'market_album'   then jsonb_extract_path_text(a.value, 'market_album', 'title')
+            when jsonb_extract_path_text(a.value, 'type') = 'podcast'        then jsonb_extract_path_text(a.value, 'podcast', 'title')
+            when jsonb_extract_path_text(a.value, 'type') = 'podcast'        then jsonb_extract_path_text(a.value, 'podcast', 'title')
+            when jsonb_extract_path_text(a.value, 'type') = 'note'           then jsonb_extract_path_text(a.value, 'note', 'title') || ' ' || jsonb_extract_path(a.value, 'note', 'text')
+            else ''
+        end as attachment_text
+        from jsonb_array_elements(se.attachments) a
+    ) att
+where jsonb_typeof(se.attachments) != 'null';

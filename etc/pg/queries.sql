@@ -2,18 +2,20 @@
 select author_id, count(1) ac from stream_events where action_time > current_date - '30 days'::interval group by author_id having count(1) > 1000;
 
 -- удаляем спамеров явных
-mephi_uir=# delete from stream_events where author_id in (select author_id from stream_events group by author_id having count(1) > 1000);
+delete from stream_events where author_id in (select author_id from stream_events group by author_id having count(1) > 1000);
 DELETE 35343
 
 -- сколько спамерских текстов
-mephi_uir=# select event_text, count(1) as cnt from stream_events group by event_text having count(1) > 1000 order by cnt limit 100;
+select event_text, count(1) as cnt from stream_events group by event_text having count(1) > 1000 order by cnt limit 100;
 
 -- новые спам-фильтры
 -- купить пакет документов
 
-mephi_uir=# select count(1) from stream_events where event_text like '%купить пакет документов%';
+select count(1) from stream_events where event_text like '%купить пакет документов%';
 -[ RECORD 1 ]
 count | 5870
+
+delete from stream_events where event_text like '%купить пакет документов%';
 
 
 select tag, count(1) as ut from (select unnest(tags) as tag from stream_events) a group by tag order by ut desc;
@@ -66,3 +68,32 @@ select count(1) from stream_events where 'tourism0' = any(tags);
 
 select tag, count(1) as ut from (select unnest(tags) as tag from msk_stream_events) a group by tag order by ut desc;
 
+-- сохраняем то, что было в описании вложений
+select se.id, att.* from
+    stream_events se,
+    lateral (
+        select case
+            when jsonb_extract_path_text(a.value, 'type') = 'link'           then jsonb_extract_path_text(a.value, 'link', 'title') || ' ' || jsonb_extract_path(a.value, 'link', 'description')
+            when jsonb_extract_path_text(a.value, 'type') = 'photo'          then jsonb_extract_path_text(a.value, 'photo', 'text')
+            when jsonb_extract_path_text(a.value, 'type') = 'video'          then jsonb_extract_path_text(a.value, 'video', 'title') || ' ' || jsonb_extract_path(a.value, 'video', 'description')
+            when jsonb_extract_path_text(a.value, 'type') = 'audo'           then jsonb_extract_path_text(a.value, 'audio', 'title') || ' ' || jsonb_extract_path(a.value, 'audio', 'artist')
+            when jsonb_extract_path_text(a.value, 'type') = 'album'          then jsonb_extract_path_text(a.value, 'album', 'title') || ' ' || jsonb_extract_path(a.value, 'album', 'text')
+            when jsonb_extract_path_text(a.value, 'type') = 'doc'            then jsonb_extract_path_text(a.value, 'doc', 'title')
+            when jsonb_extract_path_text(a.value, 'type') = 'page'           then jsonb_extract_path_text(a.value, 'page', 'title')
+            when jsonb_extract_path_text(a.value, 'type') = 'poll'           then jsonb_extract_path_text(a.value, 'poll', 'question')
+            when jsonb_extract_path_text(a.value, 'type') = 'market_album'   then jsonb_extract_path_text(a.value, 'market_album', 'title')
+            when jsonb_extract_path_text(a.value, 'type') = 'podcast'        then jsonb_extract_path_text(a.value, 'podcast', 'title')
+            when jsonb_extract_path_text(a.value, 'type') = 'podcast'        then jsonb_extract_path_text(a.value, 'podcast', 'title')
+            when jsonb_extract_path_text(a.value, 'type') = 'note'           then jsonb_extract_path_text(a.value, 'note', 'title') || ' ' || jsonb_extract_path(a.value, 'note', 'text')
+            else ''
+        end as attachments_text
+        from jsonb_array_elements(se.attachments) a
+    ) att
+where jsonb_typeof(se.attachments) != 'null' limit 10;
+
+
+-- кол-во аттачментов разного типа
+select  att.type, count(1) from stream_events se, lateral ( select a#>'{type}' as type from jsonb_array_elements(se.attachments) a where jsonb_typeof(se.attachments) = 'array' ) att where jsonb_typeof(se.attachments) != 'null' group by att.type limit 10;
+
+-- пример вложения определенного типа
+mephi_uir=# select  se.id, att.* from stream_events se, lateral ( select a, a#>'{type}' as type from jsonb_array_elements(se.attachments) a where a#>>'{type}' = 'video' ) att where jsonb_typeof(se.attachments) != 'null' limit 10;
