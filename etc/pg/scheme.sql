@@ -91,3 +91,42 @@ update stream_events set attachment_text = att.attachment_text
         from jsonb_array_elements(se.attachments) a
     ) att
 where jsonb_typeof(se.attachments) != 'null';
+
+update stream_events set attachment_text = att.attachment_text
+    from
+    stream_events se,
+    lateral (
+        select case
+            when jsonb_extract_path_text(a.value, 'type') = 'link'           then jsonb_extract_path_text(a.value, 'link', 'title') || ' ' || jsonb_extract_path(a.value, 'link', 'description')
+            when jsonb_extract_path_text(a.value, 'type') = 'photo'          then jsonb_extract_path_text(a.value, 'photo', 'text')
+            when jsonb_extract_path_text(a.value, 'type') = 'video'          then jsonb_extract_path_text(a.value, 'video', 'title') || ' ' || jsonb_extract_path(a.value, 'video', 'description')
+            when jsonb_extract_path_text(a.value, 'type') = 'audo'           then jsonb_extract_path_text(a.value, 'audio', 'title') || ' ' || jsonb_extract_path(a.value, 'audio', 'artist')
+            when jsonb_extract_path_text(a.value, 'type') = 'album'          then jsonb_extract_path_text(a.value, 'album', 'title') || ' ' || jsonb_extract_path(a.value, 'album', 'text')
+            when jsonb_extract_path_text(a.value, 'type') = 'doc'            then jsonb_extract_path_text(a.value, 'doc', 'title')
+            when jsonb_extract_path_text(a.value, 'type') = 'page'           then jsonb_extract_path_text(a.value, 'page', 'title')
+            when jsonb_extract_path_text(a.value, 'type') = 'poll'           then jsonb_extract_path_text(a.value, 'poll', 'question')
+            when jsonb_extract_path_text(a.value, 'type') = 'market_album'   then jsonb_extract_path_text(a.value, 'market_album', 'title')
+            when jsonb_extract_path_text(a.value, 'type') = 'podcast'        then jsonb_extract_path_text(a.value, 'podcast', 'title')
+            when jsonb_extract_path_text(a.value, 'type') = 'podcast'        then jsonb_extract_path_text(a.value, 'podcast', 'title')
+            when jsonb_extract_path_text(a.value, 'type') = 'note'           then jsonb_extract_path_text(a.value, 'note', 'title') || ' ' || jsonb_extract_path(a.value, 'note', 'text')
+            else ''
+        end as attachment_text
+        from jsonb_array_elements(se.attachments) a
+    ) att
+where jsonb_typeof(se.attachments) != 'null' and stream_events.id = se.id;
+
+alter table stream_events drop column attachments;
+vacuum full;
+
+alter table stream_events add column text_tsvector tsvector;
+update stream_events set text_tsvector = to_tsvector('russian', event_text || attachment_text );
+
+-- alter table stream_events rename column tags stream_tags;
+-- alter table add column tags []text;
+
+
+create table stream_rules (
+    id serial primary key,
+    value varchar(1024) not null,
+    last_updated timestamp without time zone default CURRENT_TIMESTAMP not null
+);

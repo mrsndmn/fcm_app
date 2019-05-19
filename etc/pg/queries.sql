@@ -14,11 +14,45 @@ select event_text, count(1) as cnt from stream_events group by event_text having
 select count(1) from stream_events where event_text like '%купить пакет документов%';
 -[ RECORD 1 ]
 count | 5870
-
 delete from stream_events where event_text like '%купить пакет документов%';
 
 
-select tag, count(1) as ut from (select unnest(tags) as tag from stream_events) a group by tag order by ut desc;
+create function commuted_regexp_match(text,text) returns bool as
+'select $2 ~* $1;'
+language sql;
+
+create operator ~!@# (
+ procedure=commuted_regexp_match(text,text),
+ leftarg=text, rightarg=text
+);
+
+-- смотрим плохие, ненужные теги
+echo 'tourism1
+tourism2
+tourism4
+tourism5
+tourism7
+tourism8
+tourism9
+tourism12
+tourism16
+tourism19
+tourism20
+tourism21
+satisfaction0
+satisfaction1
+satisfaction2
+satisfaction3
+satisfaction4
+politics3
+politics6' | perl -lnE  $' say  $_ ;$a //= "tags"; $a = "array_remove($a, \'$_\')" }{ say $a'
+
+select tags, array_remove(array_remove(array_remove(array_remove(array_remove(array_remove(array_remove(array_remove(array_remove(array_remove(array_remove(array_remove(array_remove(array_remove(array_remove(array_remove(array_remove(array_remove(array_remove(tags, 'tourism1'), 'tourism2'), 'tourism4'), 'tourism5'), 'tourism7'), 'tourism8'), 'tourism9'), 'tourism12'), 'tourism16'), 'tourism19'), 'tourism20'), 'tourism21'), 'satisfaction0'), 'satisfaction1'), 'satisfaction2'), 'satisfaction3'), 'satisfaction4'), 'politics3'), 'politics6') from stream_events where 'tourism(?:1|2|4|7|8|12|19|21)|satisfaction' ~!@# any(tags) limit 10;
+
+delete from stream_events where array_length(tags, 1) is null;
+
+-- смотрим распределние по тегам
+select tag, count(1) as ut from (select id, unnest(tags) as tag from stream_events) a group by tag order by ut desc;
 tag      |   ut
 ---------------+--------
  tourism0      | 563228
@@ -61,11 +95,6 @@ tag      |   ut
  politics1     |     14
 
 
-CREATE MATERIALIZED VIEW msk_stream_data
-AS
-select count(1) from stream_events where 'tourism0' = any(tags);
-
-
 select tag, count(1) as ut from (select unnest(tags) as tag from msk_stream_events) a group by tag order by ut desc;
 
 -- сохраняем то, что было в описании вложений
@@ -96,4 +125,60 @@ where jsonb_typeof(se.attachments) != 'null' limit 10;
 select  att.type, count(1) from stream_events se, lateral ( select a#>'{type}' as type from jsonb_array_elements(se.attachments) a where jsonb_typeof(se.attachments) = 'array' ) att where jsonb_typeof(se.attachments) != 'null' group by att.type limit 10;
 
 -- пример вложения определенного типа
-mephi_uir=# select  se.id, att.* from stream_events se, lateral ( select a, a#>'{type}' as type from jsonb_array_elements(se.attachments) a where a#>>'{type}' = 'video' ) att where jsonb_typeof(se.attachments) != 'null' limit 10;
+mephi_uir=# select  se.id, att.* from stream_events se, lateral ( select a, a#>'{type}' as type from jsonb_array_elements(se.attachments) a where a#>>'{type}' = 'video' ) att where jsonb_typeof(se
+
+
+-- создаем ts-вектор
+
+update stream_events set tags = array_append(tags, 'positive') where text_tsvector @@ to_tsquery('  ');
+
+
+-- заменяем названия тегов!
+insert into stream_tags (value, old_value) values
+('москва', 'tourism0'),
+('moscow', 'tourism3'),
+('кремль', 'tourism6'),
+('Царицыно', 'tourism10'),
+('Коломенский дворец', 'tourism11'),
+('Коломенское', 'tourism13'),
+('Измайлово', 'tourism14'),
+('Третьяковская галерея', 'tourism15'),
+('останкино', 'tourism17'),
+('воробьевы горы', 'tourism18'),
+('msk', 'tourism22'),
+('мск', 'tourism23'),
+('московская область', 'tourism24'),
+('артплей', 'tourism25'),
+('столица россии', 'tourism26'),
+('взятка', 'politics0'),
+('взятничество', 'politics1'),
+('дума', 'politics2'),
+('Путин', 'politics4'),
+('президент россия', 'politics5'),
+('Медведев', 'politics7'),
+('Мэр моксвы', 'politics8'),
+('Собянин', 'politics9'),
+('президент российской', 'politics10');
+
+CREATE OR REPLACE FUNCTION map_old_stream_rules(text[])
+RETURNS text[]
+AS
+$$
+DECLARE
+   arrTags ALIAS FOR $1;
+   retVal text[];
+   tmp int;
+BEGIN
+    FOR I IN array_lower(arrTags, 1)..array_upper(arrTags, 1) LOOP
+        select id into tmp from stream_tags where old_value = arrTags[I];
+        -- RAISE NOTICE 'Calling cs_create_job(%): (%) (%)', I, arrTags[I], tmp;
+        retVal[I] = tmp;
+    END LOOP;
+RETURN retVal;
+END;
+$$
+LANGUAGE plpgsql
+   STABLE
+RETURNS NULL ON NULL INPUT;
+
+update stream_events set tags = map_old_stream_rules(tags);
