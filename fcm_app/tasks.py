@@ -28,7 +28,7 @@ def save_event(events, nopg=False, noarango=False):
             save2pg(events)
     except Exception as e:
         print("Got exception while saving events: {}".format(e))
-        
+
 
 
 def save2arango(events):
@@ -56,16 +56,32 @@ def save2pg(events):
                 e[k] = None
             elif isinstance(e[k], str):
                 e[k] = e[k].replace('\x00', '')
+
+        attachments = e['attachments']
+        attachment_text = ''
+        if   attachments['type'] == 'link':         attachment_text += attachments['title'] + attachments['description']
+        elif attachments['type'] == 'video':        attachment_text += attachments['title'] + attachments['description']
+        elif attachments['type'] == 'audo':         attachment_text += attachments['title'] + attachments['artist']
+        elif attachments['type'] == 'album':        attachment_text += attachments['title'] + attachments['text']
+        elif attachments['type'] == 'note':         attachment_text += attachments['title'] + attachments['text']
+        elif attachments['type'] == 'doc':          attachment_text += attachments['title']
+        elif attachments['type'] == 'photo':        attachment_text += attachments['text']
+        elif attachments['type'] == 'page':         attachment_text += attachments['title']
+        elif attachments['type'] == 'poll':         attachment_text += attachments['question']
+        elif attachments['type'] == 'podcast':      attachment_text += attachments['title']
+        elif attachments['type'] == 'podcast':      attachment_text += attachments['title']
+        elif attachments['type'] == 'market_album': attachment_text += attachments['title']
+
         ev_tpls.append((
             author["id"], shared_post_author_id, e["action_time"], e["creation_time"], author["platform"], e["event_type"], e["action"],
-            json.dumps(e["attachments"]).rstrip('\0'), json.dumps(e["geo"]).rstrip('\0'), json.dumps(e["event_id"]).rstrip('\0'), e["tags"], e["text"]
+            json.dumps(e["geo"]).rstrip('\0'), json.dumps(e["event_id"]).rstrip('\0'), e["tags"], e["text"],attachment_text
         ))
     # print(ev_tpls)
     try:
-        args_str = b",".join(cur.mogrify("(%s,%s,to_timestamp(%s),to_timestamp(%s),%s,%s,%s,%s::jsonb,%s::jsonb,%s::jsonb,%s,%s)", e) for e in ev_tpls)
+        args_str = b",".join(cur.mogrify("(%s,%s,to_timestamp(%s),to_timestamp(%s),%s,%s,%s,%s::jsonb,%s::jsonb,%s,%s,%s)", e) for e in ev_tpls)
         inert_stmnt_prefix = """INSERT INTO {} (
             author_id, shared_post_author_id, action_time, creation_time, platform, event_type, action,
-            attachments, geo, event_id, tags, event_text) VALUES
+            geo, event_id, tags, event_text,attachment_text) VALUES
             """.format(config["pg"]["table"])
         # print("executing pg: " +  inert_stmnt_prefix + "{}".format(args_str))
         cur.execute(bytes(inert_stmnt_prefix, 'utf-8') + args_str)
