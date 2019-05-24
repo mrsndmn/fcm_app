@@ -18,17 +18,23 @@ with open("etc/conf.yaml", 'r') as yamlconf:
 
 print(config)
 
+redis_conn = None
+arango_client = None
+arango_conn = None
+pg_conn = None
 
-# REDIS
-redis_conn = redis.Redis(db=config["queue"]["BATCHDB"], decode_responses=True, host=config['queue']['redis_host'])
+try:
+    # REDIS
+    redis_conn = redis.Redis(db=config["queue"]["BATCHDB"], decode_responses=True, host=config['queue']['redis_host'])
 
-# ARANGO
-arango_client = ArangoClient(protocol='http', host=config["arango"]["host"], port=config["arango"]["port"])
-arango_conn = arango_client.db(config["arango"]["db"], username=config["arango"]["username"], password=config["arango"]["password"])
+    # ARANGO
+    arango_client = ArangoClient(protocol='http', host=config["arango"]["host"], port=config["arango"]["port"])
+    arango_conn = arango_client.db(config["arango"]["db"], username=config["arango"]["username"], password=config["arango"]["password"])
 
-
-# POSTGRES
-pg_conn = psycopg2.connect(config["pg"]["connstr"])
+    # POSTGRES
+    pg_conn = psycopg2.connect(config["pg"]["connstr"])
+except Exception as e:
+    print("oops cant lioad smthing:", e)
 
 
 streaming_conf = dict()
