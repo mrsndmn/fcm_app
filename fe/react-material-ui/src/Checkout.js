@@ -58,7 +58,7 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-const steps = ['Выбор дат и ограничений', 'Результат'];
+const steps = ['Выбор дат и ограничений', 'Определение весов концептов', 'Результат'];
 
 function getStepContent(step) {
   switch (step) {
