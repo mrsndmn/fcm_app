@@ -1,9 +1,11 @@
 import json
 import time
+import os
 
 from tasktiger import TaskTiger
 
 from fcm_app.config import arango_conn, config, logging, arango_conn, redis_conn, pg_conn
+import fcm_app.config as fcmconf
 
 tiger = TaskTiger(connection=redis_conn, config={
     'BATCH_QUEUES': {
@@ -19,21 +21,23 @@ tiger = TaskTiger(connection=redis_conn, config={
 @tiger.task(queue='batch', batch=True)
 def save_event(events, nopg=False, noarango=False):
     print("got batch of events:", len(events))
-
+    print("pid = ", os.getpid())
     try:
         if not noarango:
-            save2arango(events)
+            "ok"
+            # save2arango(events)
         #print("arango is ok\nsaving2pg:")
         if not nopg:
             save2pg(events)
     except Exception as e:
         print("Got exception while saving events: {}".format(e))
         raise(e)
+    return 1
 
 
 
 def save2arango(events):
-
+    return
     batch_db = arango_conn.begin_batch_execution(return_result=False)
     for e in events:
         batch_db.collection("stream").insert(*e['args'])
@@ -43,10 +47,11 @@ def save2arango(events):
 
 
 def save2pg(events):
+    pg_conn = fcmconf.reconnect_pg()
     cur = pg_conn.cursor()
     ev_tpls = []
     for e in [ ev['args'][0] for ev in events]:
-        #print(e['text'])
+        print(e)
         author = e['author']
         if 'platform' not in author:
             author['platform'] = None
@@ -58,8 +63,12 @@ def save2pg(events):
             elif isinstance(e[k], str):
                 e[k] = e[k].replace('\x00', '')
 
-        attachments = e['attachments']
+        attachments = []
+        if 'attachments' in e and e['attachments'] is not None:
+            attachments = e['attachments']
+
         attachment_text = ''
+        print(attachments)
         for a in attachments:
             print(a)
             if attachment_text: attachment_text += ' '
@@ -94,7 +103,7 @@ def save2pg(events):
         print("ok saved to pg")
         pg_conn.commit()
     except Exception as e:
-        # print("pgerr: ", e, ev_tpls)
+        print("pgerr: ", e, ev_tpls)
         pg_conn.rollback()
         raise e
 

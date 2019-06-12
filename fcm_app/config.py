@@ -23,13 +23,21 @@ print(config)
 redis_conn = redis.Redis(db=config["queue"]["BATCHDB"], decode_responses=True, host=config['queue']['redis_host'])
 
 # ARANGO
-arango_client = ArangoClient(protocol='http', host=config["arango"]["host"], port=config["arango"]["port"])
-arango_conn = arango_client.db(config["arango"]["db"], username=config["arango"]["username"], password=config["arango"]["password"])
+arango_client = None # ArangoClient(protocol='http', host=config["arango"]["host"], port=config["arango"]["port"])
+arango_conn = None  #arango_client.db(config["arango"]["db"], username=config["arango"]["username"], password=config["arango"]["password"])
 
 
 # POSTGRES
-pg_conn = psycopg2.connect(config["pg"]["connstr"])
+def reconnect_pg():
+    global pg_conn
+    if pg_conn is not None:
+        pg_conn.close()
+    pg_conn = psycopg2.connect(config["pg"]["connstr"])
+    return pg_conn
 
+pg_conn = None
+
+reconnect_pg()
 
 streaming_conf = dict()
 with open("etc/streaming.yaml", 'r') as yamlconf:
