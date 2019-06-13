@@ -8,9 +8,10 @@ from fcm_app.config import arango_conn, config, logging, arango_conn, redis_conn
 import fcm_app.config as fcmconf
 
 tiger = TaskTiger(connection=redis_conn, config={
+    'SELECT_TIMEOUT': config["queue"]["QDELAY"],
+    'SELECT_BATCH_TIMEOUT': config["queue"]["QDELAY"],
     'BATCH_QUEUES': {
         'batch': config["queue"]["QBATCH_SIZE"],
-        'SELECT_BATCH_TIMEOUT': config["queue"]["QDELAY"]
     }
 })
 # tiger.log.setLevel(logging.DEBUG)

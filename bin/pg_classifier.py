@@ -48,3 +48,6 @@ for k in classes:
 # spam_cnt | positive_cnt | negative_cnt | crime_cnt | tourism_cnt | sport_cnt | culture_cnt 
 # ----------+--------------+--------------+-----------+-------------+-----------+-------------
 #     19485 |        28549 |         1722 |       722 |       68024 |     15631 |       25540
+
+
+(positive or negative or crime or tourism or sport or culture) and (spam is not null)
