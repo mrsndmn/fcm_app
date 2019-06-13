@@ -42,7 +42,6 @@ class Review extends React.Component {
     var a = JSON.parse(request('GET', 'http://127.0.0.1:5000/fcm/concepts').getBody('utf8'))
     console.log(a)
     this.state = {
-      display: true,
       concs: a['data']['list']
       // classes: useStyles()
     }
