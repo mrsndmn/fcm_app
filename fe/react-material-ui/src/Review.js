@@ -5,6 +5,9 @@ import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
 import Grid from '@material-ui/core/Grid';
+import TextField from '@material-ui/core/TextField';
+
+var request = require('sync-request');
 
 const products = [
   { name: 'Product 1', desc: 'A nice thing', price: '$9.99' },
@@ -33,54 +36,34 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-export default function Review() {
-  const classes = useStyles();
+class Review extends React.Component {
+  constructor(props) {
+    super(props);
+    var a = JSON.parse(request('GET', 'http://127.0.0.1:5000/fcm/concepts').getBody('utf8'))
+    console.log(a)
+    this.state = {
+      display: true,
+      concs: a['data']['list']
+      // classes: useStyles()
+    }
+  }
 
-  return (
-    <React.Fragment>
-      <Typography variant="h6" gutterBottom>
-        Карта
-      </Typography>
-      {/* <List disablePadding>
-        {products.map(product => (
-          <ListItem className={classes.listItem} key={product.name}>
-            <ListItemText primary={product.name} secondary={product.desc} />
-            <Typography variant="body2">{product.price}</Typography>
-          </ListItem>
-        ))}
-        <ListItem className={classes.listItem}>
-          <ListItemText primary="Total" />
-          <Typography variant="subtitle1" className={classes.total}>
-            $34.06
-          </Typography>
-        </ListItem>
-      </List>
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
-          <Typography variant="h6" gutterBottom className={classes.title}>
-            Shipping
-          </Typography>
-          <Typography gutterBottom>John Smith</Typography>
-          <Typography gutterBottom>{addresses.join(', ')}</Typography>
-        </Grid>
-        <Grid item container direction="column" xs={12} sm={6}>
-          <Typography variant="h6" gutterBottom className={classes.title}>
-            Payment details
-          </Typography>
-          <Grid container>
-            {payments.map(payment => (
-              <React.Fragment key={payment.name}>
-                <Grid item xs={6}>
-                  <Typography gutterBottom>{payment.name}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography gutterBottom>{payment.detail}</Typography>
-                </Grid>
-              </React.Fragment>
-            ))}
-          </Grid>
-        </Grid>
-      </Grid> */}
-    </React.Fragment>
-  );
+  render() {
+    return (
+      <React.Fragment>
+        <Typography variant="h6" gutterBottom>
+          Значения весов концептов:
+
+          {
+            this.state['concs'].map(conc => (
+              <TextField id={conc} name={conc} label={conc} fullWidth value='0'/>
+            ))
+          }
+
+        </Typography>
+      </React.Fragment>
+    );
+  }
 }
+
+export default Review;

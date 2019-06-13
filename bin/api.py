@@ -170,13 +170,14 @@ class Concepts(Resource):
     def __init__(self):
         self.supported_concepts = config['concepts']['list']
         self.target = config['concepts']['target']
+        self.all_conc = self.supported_concepts.copy()
+        self.all_conc.append(self.target)
     def get(self):
         return {
-            data: {
-                'list': self.supported_concepts,
-                'target': self.target
+            'data': {
+                'list': self.all_conc
             }
-        }
+        }, 200, {'Access-Control-Allow-Origin': '*'}
 
 api.add_resource(Concepts, '/fcm/concepts')
 
