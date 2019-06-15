@@ -1,4 +1,5 @@
 from flask import Flask
+from flask import request, send_from_directory
 from flask_restful import Resource, Api, reqparse
 
 from fcm_app.config import config, pg_conn
@@ -13,7 +14,7 @@ import networkx as nx
 
 import json
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static')
 api = Api(app)
 
 parser = reqparse.RequestParser()
@@ -35,6 +36,10 @@ parser.add_argument('weights')
     
 
 #     return ''
+@app.route('/<path:path>')
+def static_file(path):
+    print(path)
+    return app.send_static_file(path)
 
 
 class FCMHandler(Resource):
@@ -48,11 +53,11 @@ class FCMHandler(Resource):
         target = config['concepts']['target']
 
         query = """
-            copy (select positive, negative, """ + ", ".join(concepts) + """ from stream_events where spam is null)
+            copy (select positive, negative, """ + ", ".join(concepts) + """ from stream_events where spam is null and creation_time between to_timestamp(%s) and to_timestamp(%s))
                 to '/tmp/stream_events_classes.csv' with (format csv, header)
         """
         cur = pg_conn.cursor()
-        cur.execute(query)
+        # cur.execute(query, args['date_from'], args['date_to'])
         cur.close()
 
         df_no_spam = pd.read_csv("/tmp/stream_events_classes.csv")
@@ -77,9 +82,13 @@ class FCMHandler(Resource):
             weights[c] = 0
 
         itemsets, rules = apriori(tuples, min_support=0.0001,  min_confidence=0.001)
+        if 'weights' not in args or args['weights'] is None:
+            args['weights'] = "{}"
         parsed_weights = json.loads(args['weights'])
         for c in weights:
-            weights[c] = parsed_weights[c]
+            if c not in parsed_weights:
+                continue
+            weights[c] = float(parsed_weights[c])
 
         def activation(x, derivative=False):
             return np.tanh(x) # x*(1-x) if derivative else 1/(1+np.exp(-x))
@@ -112,15 +121,20 @@ class FCMHandler(Resource):
         DGresult = DG.copy()
 
         tmp_concepts = concept_values.copy()
-        eco_changes = []
+        concepts_changes = dict()
+        for c in concept_values:
+            concepts_changes[c] = []
+
+        effective_iters = 0
         for epoch in range(100):
 
             old_cv = nx.get_node_attributes(DGresult, 'cv')
             for c, inners in DGresult.pred.items():
                 tmp_concepts[c] = activation( old_cv[c] + np.sum([ old_cv[factor_conc] * fc_weight['weight'] for factor_conc, fc_weight in inners.items() ]) )
+                concepts_changes[c].append(tmp_concepts[c])
 
             nx.set_node_attributes(DGresult, tmp_concepts, 'cv')
-            eco_changes.append(tmp_concepts[target])
+            effective_iters += 1
 
 
         labels = nx.get_node_attributes(DGresult, 'cv')
@@ -130,6 +144,7 @@ class FCMHandler(Resource):
         res_cv = nx.get_node_attributes(DGresult, 'cv')
         pos = nx.spring_layout(DGresult)
 
+        plt.clf()
         cf = plt.gcf()
         cf.set_size_inches(18, 10)
 
@@ -150,19 +165,30 @@ class FCMHandler(Resource):
                             width=3, alpha=0.3, edge_color='black', ax=ax)
 
         nx.draw_networkx_labels(DGresult, pos, labels, font_size=10)
-        
-        graph_img = '/static/images/plot.png'
-        plt.savefig(graph_img, format="PNG", dpi=100)
+
+        graph_img = 'static/images/plot.png'
         # nx.draw(DGresult, with_labels=True, labels=labels, node_color='lightblue', weight=True, font_weight='normal')
+        plt.savefig(graph_img, format="PNG", dpi=100)
 
-        conv_img = '/static/images/conv.png'
-        plt.plot(eco_changes)
+        plt.clf()
+        conv_img = 'static/images/conv.png'
+
+        linspace = [ i for i in range(effective_iters) ]
+        for c in concepts_changes:
+            plt.plot(linspace, concepts_changes[c], label=c)
+
         plt.savefig(conv_img, format="PNG", dpi=100)
+        return {
+            'data': [
+                'http://116.203.70.12:8000/' + graph_img.split("/")[2],
+                'http://116.203.70.12:8000/' + conv_img.split("/")[2]
+            ]
+        }, 200, {'Access-Control-Allow-Origin': '*'}
 
-        return {'data': {
-            'graph_img': graph_img,
-            'conv_img': conv_img,
-        }}
+        # return {'data': {
+        #     'graph_img': graph_img,
+        #     'conv_img': conv_img,
+        # }}
 
 api.add_resource(FCMHandler, '/fcm/calculator')
 

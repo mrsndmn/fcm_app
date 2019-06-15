@@ -60,30 +60,30 @@ const useStyles = makeStyles(theme => ({
 
 const steps = ['Выбор дат и ограничений', 'Определение весов концептов', 'Результат'];
 
-function getStepContent(step) {
-  switch (step) {
-    case 0:
-      return <AddressForm />;
-    case 1:
-      return <Review />;
-    case 2:
-      return <PaymentForm />;
-    default:
-      throw new Error('Unknown step');
-  }
-}
-
 export default function Checkout() {
   const classes = useStyles();
-  const [activeStep, setActiveStep] = React.useState(0);
+  const [activeStep, setActiveStep] = React.useState({step: 0, data :{}});
 
   const handleNext = () => {
-    setActiveStep(activeStep + 1);
+    setActiveStep({step: activeStep.step + 1, data: activeStep.data});
   };
 
   const handleBack = () => {
-    setActiveStep(activeStep - 1);
+    setActiveStep({step: activeStep.step - 1, data: activeStep.data});
   };
+
+  const getStepContent = (state) => {
+    switch (state.step) {
+      case 0:
+        return <AddressForm />;
+      case 1:
+        return <Review weightsCB={ (weights) => { setActiveStep({step: activeStep.step, data: weights}); } }/>;
+      case 2:
+        return <PaymentForm weights={state.data} />;
+      default:
+        throw new Error('Unknown step:'+state.step);
+    }
+  }
 
   return (
     <React.Fragment>
@@ -100,7 +100,7 @@ export default function Checkout() {
           <Typography component="h1" variant="h4" align="center">
 
           </Typography>
-          <Stepper activeStep={activeStep} className={classes.stepper}>
+          <Stepper activeStep={activeStep.step} className={classes.stepper}>
             {steps.map(label => (
               <Step key={label}>
                 <StepLabel>{label}</StepLabel>
@@ -111,18 +111,18 @@ export default function Checkout() {
             <React.Fragment>
               {getStepContent(activeStep)}
               <div className={classes.buttons}>
-                {activeStep !== 0 && (
+                {activeStep.step !== 0 && (
                   <Button onClick={handleBack} className={classes.button}>
                     Назад
                   </Button>
                 )}
-                { activeStep !== steps.length-1 && <Button
+                { activeStep.step !== steps.length-1 && <Button
                     variant="contained"
                     color="primary"
                     onClick={handleNext}
                     className={classes.button}
                   >
-                    {activeStep === steps.length - 1 ? 'Сохранить' : 'Далее'}
+                    {activeStep.step === steps.length - 1 ? 'Сохранить' : 'Далее'}
                   </Button>
                 }
               </div>

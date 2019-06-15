@@ -40,10 +40,9 @@ class Review extends React.Component {
   constructor(props) {
     super(props);
     var a = JSON.parse(request('GET', 'http://127.0.0.1:5000/fcm/concepts').getBody('utf8'))
-    console.log(a)
     this.state = {
-      concs: a['data']['list']
-      // classes: useStyles()
+      concs: a['data']['list'],
+      weights: {}
     }
   }
 
@@ -55,7 +54,16 @@ class Review extends React.Component {
 
           {
             this.state['concs'].map(conc => (
-              <TextField id={conc} name={conc} label={conc} fullWidth value='0'/>
+              <TextField id={conc} name={conc} label={conc} fullWidth placeholder='0'
+                onChange={
+                  (obj) => {
+                    console.log(this.state);
+                    this.state['weights'][conc] = obj.target.value;
+                    this.setState(this.state);
+                    this.props.weightsCB(this.state['weights'])
+                  }
+                }
+              />
             ))
           }
 

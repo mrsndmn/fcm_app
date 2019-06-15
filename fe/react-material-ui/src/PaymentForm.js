@@ -6,11 +6,15 @@ import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Checkbox from '@material-ui/core/Checkbox';
 
 var request = require('sync-request');
+var qs = require('qs');
 
 class PaymentForm extends React.Component {
   constructor(props) {
     super(props);
-    var a = JSON.parse(request('GET', 'http://127.0.0.1:5000/fcm/concepts').getBody('utf8'))
+    console.log("props in payment form:", props);
+    var q = qs.stringify( {'weights': JSON.stringify(props['weights'])} )
+    console.log(q)
+    var a = JSON.parse(request('GET', 'http://127.0.0.1:5000/fcm/calculator?'+q ).getBody('utf8'))
     console.log(a)
     this.state = {
       imgs: a['data']
@@ -21,34 +25,13 @@ class PaymentForm extends React.Component {
     return (
       <React.Fragment>
         <Typography variant="h6" gutterBottom>
-          Payment method
+          {/* Когнитивная карта */}
+          <Grid container spacing={3}>
+            {
+              this.state['imgs'].map(imagesrc => ( <img src={imagesrc}></img> ) )
+            }
+          </Grid>
         </Typography>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <TextField required id="cardName" label="Name on card" fullWidth />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField required id="cardNumber" label="Card number" fullWidth />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField required id="expDate" label="Expiry date" fullWidth />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <TextField
-              required
-              id="cvv"
-              label="CVV"
-              helperText="Last three digits on signature strip"
-              fullWidth
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <FormControlLabel
-              control={<Checkbox color="secondary" name="saveCard" value="yes" />}
-              label="Remember credit card details for next time"
-            />
-          </Grid>
-        </Grid>
       </React.Fragment>
     );
   }
