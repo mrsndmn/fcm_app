@@ -150,19 +150,19 @@ class FCMHandler(Resource):
 
         ax = cf.gca()
 
-        for k in DGresult:
-            ncolor = 'b' if res_cv[k] >= 0 else 'red'
+        for c, inners in DGresult.pred.items():
             nx.draw_networkx_nodes(DGresult, pos,
-                            nodelist=[k],
+                            nodelist=[c],
                             labels=labels,
-                            node_color=ncolor,
+                            node_color="blue",
                             node_size=500,
                             alpha=0.5,
                             ax=ax)
-
-        nx.draw_networkx_edges(DGresult, pos,
-                            edgelist=DGresult.edges,
-                            width=3, alpha=0.3, edge_color='black', ax=ax)
+            for inner in inners:
+                edge_color = 'red' if res_cv[inner] < 0 else 'green'
+                nx.draw_networkx_edges(DGresult, pos,
+                            edgelist=[(inner, c)],
+                            width=3, alpha=0.3, edge_color=edge_color, ax=ax)
 
         nx.draw_networkx_labels(DGresult, pos, labels, font_size=10)
 
