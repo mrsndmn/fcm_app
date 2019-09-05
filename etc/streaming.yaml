@@ -1,4 +1,4 @@
-
+# [ "tags", "event_text", "attachment_text", "positive", "spam", "negative", "crime", "tourism", "sport", "culture" ]
 rules:
   global_alters:
     - -знакомства

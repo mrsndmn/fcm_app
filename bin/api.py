@@ -166,6 +166,9 @@ class FCMHandler(Resource):
 
         nx.draw_networkx_labels(DGresult, pos, labels, font_size=10)
 
+        weight_edge_labels = nx.get_edge_attributes(DGresult,'weight')
+        nx.draw_networkx_edge_labels(DGresult, pos,edge_labels=weight_edge_labels)
+
         graph_img = 'static/images/plot.png'
         # nx.draw(DGresult, with_labels=True, labels=labels, node_color='lightblue', weight=True, font_weight='normal')
         plt.savefig(graph_img, format="PNG", dpi=100)
@@ -176,6 +179,7 @@ class FCMHandler(Resource):
         linspace = [ i for i in range(effective_iters) ]
         for c in concepts_changes:
             plt.plot(linspace, concepts_changes[c], label=c)
+        plt.legend()
 
         plt.savefig(conv_img, format="PNG", dpi=100)
         return {
